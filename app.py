@@ -1,31 +1,37 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr  1 19:22:53 2020
-
-@author: Soham Ghosh
-"""
-from flask import Flask, render_template,request
-import pickle
 import numpy as np
-app=Flask(__name__)
+from flask import Flask, request, jsonify, render_template
+import pickle
 
-model=pickle.load(open('model.pkl','rb'))
+app = Flask(__name__)
+model = pickle.load(open('model.pkl', 'rb'))
 
 @app.route('/')
-def hello():
-    return render_template('test.html')
+def home():
+    return render_template('index.html')
 
-@app.route('/predict',method="POST")
+@app.route('/predict',methods=['POST'])
 def predict():
-    print(request.form)
-    features=[int(x) for x in request.form.values()]
-    final=[np.array(features)]
-    print(features)
-    print(final)
-    prediction=model.predictproba(final)
-    output='{0:.{1}f}'.format(prediction[0][1],2)
-    
-    return render_template('test.html',pred='ANALYSIS IS {}'.format(output))
+    '''
+    For rendering results on HTML GUI
+    '''
+    int_features = [int(x) for x in request.form.values()]
+    final_features = [np.array(int_features)]
+    prediction = model.predict(final_features)
 
-if __name__=='__main__':
-    app.run(debug=True, host='192.168.0.5') #, host='192.168.0.5', port='6000')
+    output = round(prediction[0], 2)
+
+    return render_template('index.html', prediction_text='Employee Salary should be $ {}'.format(output))
+
+@app.route('/predict_api',methods=['POST'])
+def predict_api():
+    '''
+    For direct API calls trought request
+    '''
+    data = request.get_json(force=True)
+    prediction = model.predict([np.array(list(data.values()))])
+
+    output = prediction[0]
+    return jsonify(output)
+
+if __name__ == "__main__":
+    app.run(debug=True)
